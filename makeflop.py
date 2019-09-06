@@ -365,7 +365,7 @@ class Floppy:
         s = ""
         for i in range(len(self.fat)):
             if (i % per_line) == 0:
-                s += "%04X:" % i
+                s += "%03X:" % i
             s += " %03X" % self.fat[i]
             if (i % per_line) == (per_line - 1):
                 s += "\n"
