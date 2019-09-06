@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # makeflop.py
-# Version 2
+# Version 3
 # Brad Smith, 2019
 # http://rainwarrior.ca
 #
@@ -40,6 +40,9 @@ class Floppy:
 
     .add_all(path,prefix) - Adds all files from local path to disk (uppercased). Use prefix to specify a target directory. Returns False if any failed.
     .extract_all(path) - Dumps entire contents of disk to local path.
+
+    .find_path(path) - Returns a Floppy.FileEntry.
+    FileEntry.info() - Returns and information string about a FileEntry.
 
     This class provides some basic interface to a FAT12 floppy disk image.
     Some things are fragile, in particular filenames that are too long,
@@ -362,7 +365,7 @@ class Floppy:
         s = ""
         for i in range(len(self.fat)):
             if (i % per_line) == 0:
-                s += "%4d:" % i
+                s += "%04X:" % i
             s += " %03X" % self.fat[i]
             if (i % per_line) == (per_line - 1):
                 s += "\n"
