@@ -258,7 +258,7 @@ class Floppy:
         self.track_sects = boot[8]
         self.heads = boot[9]
         self.volume_id = 0
-        self.volume_label = "NO NAME"
+        self.volume_label = ""
         if self.data[38] == 0x29 and len(self.data) >= 54:
             self.volume_id = struct.unpack("<L",self.data[39:43])[0]
             self.volume_label = self.data[43:54].decode("ASCII").rstrip(" ")
