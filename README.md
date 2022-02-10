@@ -34,8 +34,6 @@ For example, you can create a SIDE2 folder, which will work normally in a double
 
 This works because even when using a single sided drive, TOS will still identify a double sided format disk, and correctly addresses clusters by side. This means that a single sided drive can access any files or directories that are only stored on side 1 clusters of the disk.
 
-# makenib.py
+# other
 
-Simple data inspection and extraction for an Apple II NIB disk image. DOS 3.2 and 3.3.
-
-Public domain.
+* [master](https://github.com/bbbradsmith/makeflop.py) - Master branch instead provides more normal disk image manuplation, and other tools.
