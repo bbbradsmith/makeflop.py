@@ -13,7 +13,7 @@ Public domain.
 ***This fork of makeflop.py is modified to favour filling up side-1 of a disk image before side-2, allowing the creation of Atari ST disk images where the files can be separated for use by single and double sided drives.***
 
 Example:
-```
+```python
 	f = Floppy() # create blank special-format disk
 	f.add_all("side1\\","") # add side 1 files
 	r = f.close_side1() # finish side 1
