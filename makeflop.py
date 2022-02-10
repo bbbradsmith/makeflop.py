@@ -8,6 +8,11 @@
 # Simple file operations for a FAT12 floppy disk image.
 # Public domain.
 
+# TwoSide Fork
+# This favours allocating new clusters on side 1 first,
+# allowing the creation of disks where the files can be separated
+# for use by single and double sided drives.
+
 import sys
 assert sys.version_info[0] == 3, "Python 3 required."
 
@@ -268,6 +273,10 @@ class Floppy:
         self.root = self.sector_size * (self.reserved_sects + (self.fat_count * self.fat_sects))
         root_sectors = ((self.root_max * 32) + (self.sector_size-1)) // self.sector_size # round up to fill sector
         self.cluster2 = self.root + (self.sector_size * root_sectors)
+        # TwoSide Fork
+        if self.heads != 2:
+            print(self.boot_info())
+            raise self.error("TwoSide Mod of makeflop.py works only on double-sided media.")s
 
     def _boot_flush(self):
         """Commits changes to the boot sector."""
@@ -419,8 +428,14 @@ class Floppy:
         # find a chain of free clusters
         chain = []
         for i in range(2,len(self.fat)):
-            if self.fat[i] == 0:
-                chain.append(i)
+            # TwoSide Fork
+            # replace logical order with side-1-first order
+            isector = i % self.track_sects
+            itrack = i // self.track_sects
+            ihead = i // (self.sectors // 2) # head will select every second logical track
+            j = isector + (((itrack * 2) + ihead) * self.track_sects)
+            if self.fat[j] == 0:
+                chain.append(j)
             if len(chain) >= clusters:
                 break
         if len(chain) < clusters:
