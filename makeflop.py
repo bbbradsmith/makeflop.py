@@ -67,8 +67,8 @@ class Floppy:
         print(f.boot_info()) # list boot information about disk
         print(f.file_info()) # list files and directories
         f.set_volume_id() # generates a new volume ID
-        f.set_volume_label("MY DISK") # changes the volume label
-        f.save("new.img")
+        f.set_volume_label("TWOSIDE") # changes the volume label
+        f.save("twoside.st")
     """
 
     EMPTY = 0xE5 # incipit value for an empty directory entry
