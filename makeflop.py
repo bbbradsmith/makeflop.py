@@ -268,6 +268,7 @@ class Floppy:
         self.root = self.sector_size * (self.reserved_sects + (self.fat_count * self.fat_sects))
         root_sectors = ((self.root_max * 32) + (self.sector_size-1)) // self.sector_size # round up to fill sector
         self.cluster2 = self.root + (self.sector_size * root_sectors)
+        self.cluster_limit = ((self.sectors - (self.cluster2 // self.sector_size)) // self.cluster_sects) + 2
 
     def _boot_flush(self):
         """Commits changes to the boot sector."""
@@ -303,7 +304,8 @@ class Floppy:
         s += "Heads: %d\n" % self.heads
         s += "Root directory: %08X\n" % self.root
         s += "Cluster 2: %08X\n" % self.cluster2
-        return s
+        s += "Total clusters: %d\n" % (self.cluster_limit-2)
+s        return s
 
     def _fat_open(self):
         """Parses the FAT table."""
@@ -418,7 +420,7 @@ class Floppy:
             clusters = 1
         # find a chain of free clusters
         chain = []
-        for i in range(2,len(self.fat)):
+        for i in range(2,self.cluster_limit):
             if self.fat[i] == 0:
                 chain.append(i)
             if len(chain) >= clusters:
