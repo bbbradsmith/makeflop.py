@@ -31,6 +31,9 @@ class Floppy:
     .flush() - Updates the .data member with any pending changes.
     .data - A bytearray of the disk image.
 
+    .free_side1() - Returns clusters free on side 1.
+    .close_side1() - Reserves all remaining clusters on side 1. Prints and returns count of clusters reserved.
+
     .files() - Returns a list of strings, each is a file or directory. Directories end with a backslash.
     .delete_path(path) - Deletes a file or directory (recursive).
     .add_dir_path(path) - Creates a new empty directory, if it does not already exist (recursive). Returns cluster of directory, or -1 if failed.
@@ -56,15 +59,13 @@ class Floppy:
     and changes will be applied to the stored .data image with .flush().
 
     Example:
-        f = Floppy.open("disk.img")
+        f = Floppy() # create blank special-format disk
+        f.add_all("side1\\","") # add side 1 files
+        r = f.close_side1() # finish side 1
+        assert(r >= 0) # make sure side 1 is not overflowed
+        f.add_all("side2\\","SIDE2\\") # add side 2 files to SIDE2 folder
         print(f.boot_info()) # list boot information about disk
         print(f.file_info()) # list files and directories
-        f.extract_all("disk_dump\\")
-        f.delete_path("DIR\\FILE.TXT") # delete a file
-        f.delete_path("DIR") # delete an entire directory
-        f.add_file_path("DIR\\NEW.TXT",open("new.txt","rb").read()) # add a file, directory automatically created
-        f.add_dir_path("NEWDIR") # creates a new directory
-        f.add_all("add\\","ADDED\\") # adds all files from a local directory to to a specified floppy directory.
         f.set_volume_id() # generates a new volume ID
         f.set_volume_label("MY DISK") # changes the volume label
         f.save("new.img")
@@ -248,6 +249,7 @@ class Floppy:
         self.root = self.sector_size * (self.reserved_sects + (self.fat_count * self.fat_sects))
         root_sectors = ((self.root_max * 32) + (self.sector_size-1)) // self.sector_size # round up to fill sector
         self.cluster2 = self.root + (self.sector_size * root_sectors)
+        self.cluster_limit = ((self.sectors - (self.cluster2 // self.sector_size)) // self.cluster_sects) + 2
         # TwoSide Fork
         if self.heads != 2:
             print(self.boot_info())
@@ -290,6 +292,7 @@ class Floppy:
         s += "Heads: %d\n" % self.heads
         s += "Root directory: %08X\n" % self.root
         s += "Cluster 2: %08X\n" % self.cluster2
+        s += "Total clusters: %d\n" % (self.cluster_limit-2)
         return s
 
     def _fat_open(self):
@@ -348,7 +351,7 @@ class Floppy:
 
     def fat_info(self):
         """String of information about the FAT."""
-        per_line = 32
+        per_line = 18
         s = ""
         for i in range(len(self.fat)):
             if (i % per_line) == 0:
@@ -409,7 +412,7 @@ class Floppy:
             # TwoSide Fork
             # replace logical order with side-1-first order
             cside = self.track_sects // self.cluster_sects # clusters belonging to only side-1 on each track (rounds down to avoid split clusters)
-            tcount = self.sectors // self.track_sects # total track count
+            tcount = self.sectors // (self.track_sects * 2) # total track count for each side
             csplit = (tcount-1) * cside # total clusters on side-1 only, first track is useds for boot/FAT/root
             cdual = (self.track_sects * 2) // self.cluster_sects # total clusters per dual-track
             l = i-2
@@ -419,10 +422,11 @@ class Floppy:
                 ihead = 0
             else:
                 icluster = (l - csplit) % (cdual - cside)
-                itrack = (l - csplit) % (cdual - cside)
+                itrack = (l - csplit) // (cdual - cside)
                 ihead = 1
-            j = (itrack * cdual) + (cdual - ((1-ihead) * cside)) + icluster + 2
-            #print("%3d = %2d:%2d:%2d = %3d" % (i,ihead,itrack,icluster,j))
+            j = (itrack * cdual) + ((1-ihead) * (cdual-cside)) + icluster + 2
+            if j >= self.cluster_limit:
+                continue
             if self.fat[j] == 0:
                 chain.append(j)
             if len(chain) >= clusters:
@@ -445,6 +449,46 @@ class Floppy:
             data = data[write:]
         # done
         return start_cluster
+
+    def _reserve_side1(self,reserve=False):
+        """Counts and optionally reserves free clusters on side 1. Used clusters on side 2 count as -1."""
+        # TwoSide Fork       
+        count = 0
+        for i in range(2,self.cluster_limit):
+            cside = self.track_sects // self.cluster_sects
+            tcount = self.sectors // (self.track_sects * 2)
+            csplit = (tcount-1) * cside
+            cdual = (self.track_sects * 2) // self.cluster_sects
+            l = i-2
+            if l < csplit:
+                icluster = l % cside
+                itrack = l // cside
+                ihead = 0
+            else:
+                icluster = (l - csplit) % (cdual - cside)
+                itrack = (l - csplit) // (cdual - cside)
+                ihead = 1
+            j = (itrack * cdual) + ((1-ihead) * (cdual-cside)) + icluster + 2
+            if l < csplit:
+                if self.fat[j] == 0: # unused cluster on side 1
+                    if reserve:
+                        self.fat[j] = 0xFF0
+                    count += 1
+            elif self.fat[j] != 0: # used cluster on side 2
+                count -= 1
+        return count
+
+    def free_side1(self):
+        """Counts remaining clusters on side 1. Negative if already full and using side 2."""
+        # TwoSide Fork
+        return self._reserve_side1(False)
+
+    def close_side1(self):
+        """Marks all remaining side 1 clusters as reserved. Prints and returns number of clusters left unused, Negative if side 2 already reached."""
+        # TwoSide Fork
+        c = self._reserve_side1(True)
+        print("Side 1 closed, %d clusters reserved." % c)
+        return c
         
     def _files_dir(self, cluster, path):
         """Returns a list of files in the directory starting at the given cluster. Recursive."""
@@ -794,3 +838,4 @@ class Floppy:
                 result = result and self.add_file_path(file_path,data)
                 print(file_path + " (%d bytes)" % len(data))
         return result
+s
