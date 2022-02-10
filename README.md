@@ -10,7 +10,7 @@ Public domain.
 
 ## TwoSide Version ##
 
-***This fork of makeflop.py is modified to favour filling up side-1 of a disk image before side-2, allowing the creation of Atari ST disk iamges where the files can be separated for use by single and double sided drives.***
+***This fork of makeflop.py is modified to favour filling up side-1 of a disk image before side-2, allowing the creation of Atari ST disk images where the files can be separated for use by single and double sided drives.***
 
 # makenib.py
 
