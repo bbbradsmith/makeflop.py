@@ -15,20 +15,22 @@ Public domain.
 Example:
 ```python
 	f = Floppy() # create blank special-format disk
-	f.add_all("side1\\","") # add side 1 files
-	r = f.close_side1() # finish side 1
+	f.add_all("src1\\","") # add side 1 files to the root
+	r = f.close_side1() # reserve side 1 
 	assert(r >= 0) # make sure side 1 is not overflowed
-	f.add_all("side2\\","SIDE2\\") # add side 2 files to SIDE2 folder
+	f.add_dir_path("SIDE2\\") # create SIDE2 directory on side 2
+	f.open_side1() # reopen reserved clusters
+	f.add_all("src2\\","SIDE2\\") # add side 2 files to SIDE2 directory
 	print(f.boot_info()) # list boot information about disk
-	print(f.file_info()) # list files and directories
+	print(f.files_info()) # list files and directories
 	f.set_volume_id() # generates a new volume ID
 	f.set_volume_label("TWOSIDE") # changes the volume label
 	f.save("twoside.st")
 ```
 
-The default image created by _Floppy()_ is a 720k disk image, 9 sectors per track. Slightly different formatting could be used. The requirement is merely that all of side 1 track 1 be taken up by the boot sector, FAT tables, and root directory. For the 720k version, this limits us to 32 files in the root directory.
+The default image created by _Floppy()_ is a 720k disk image, 9 sectors per track. Slightly different formatting could be used. The requirement is merely that all of side 1 track 1 be taken up by the boot sector, FAT tables, and root directory. For the 720k version, this limits us to 32 files in the root directory. Side 1 has 316k of available space, with 716k in total.
 
-The process of preparing the image is to start with the blank special-format image, add all files for side 1, then use _close_side1()_ to finalize the side. After this, add all files for side 2, preferrably in an easily identifiable folder so single sided drive users won't be confused by which files work.
+The process of preparing the image is to start with the blank special-format image, add all files for side 1, then use _close_side1()_ to temporarily reserve the rest of the side. After this, all new files and folders will be added to side 2 instead. Once finished placing things on side 2 use _open_side1()_ to remove the reservation, and permit any remaining space to be used in a normal double-sided way.
 
 For example, you can create a SIDE2 folder, which will work normally in a double sided drive, and a user with a single sided drive would know to avoid. For the single sided drive, trying to open this folder will create a read error, after which that folder will appear empty.
 
