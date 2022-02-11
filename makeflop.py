@@ -38,6 +38,7 @@ class Floppy:
     .fat_info() - Returns a very long string of all 12-bit FAT entries.
     .files_info() - Returns a string displaying the files() list.
 
+    .add_one(local_path,target_path) - Adds one file from local path to target path on image. Returns False if failed.
     .add_all(path,prefix) - Adds all files from local path to disk (uppercased). Use prefix to specify a target directory. Returns False if any failed.
     .extract_all(path) - Dumps entire contents of disk to local path.
 
@@ -766,6 +767,12 @@ class Floppy:
             else:
                 print(out_path)
 
+    def add_one(self,local_path,target_path):
+        """
+        Adds one file from specified local path to image target path.
+        """
+        return self.add_file_path(target_path,open(local_path,"rb").read())
+        
     def add_all(self, in_directory, prefix=""):
         """
         Adds all files from specified directory to image.
