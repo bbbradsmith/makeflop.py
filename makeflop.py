@@ -53,7 +53,7 @@ class Floppy:
     Example:
         f = Floppy.open("disk.img")
         print(f.boot_info()) # list boot information about disk
-        print(f.file_info()) # list files and directories
+        print(f.files_info()) # list files and directories
         f.extract_all("disk_dump\\")
         f.delete_path("DIR\\FILE.TXT") # delete a file
         f.delete_path("DIR") # delete an entire directory
@@ -305,7 +305,7 @@ class Floppy:
         s += "Root directory: %08X\n" % self.root
         s += "Cluster 2: %08X\n" % self.cluster2
         s += "Total clusters: %d\n" % (self.cluster_limit-2)
-s        return s
+        return s
 
     def _fat_open(self):
         """Parses the FAT table."""
